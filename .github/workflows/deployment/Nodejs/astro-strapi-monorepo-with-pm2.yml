@@ -1,0 +1,115 @@
+name: "Astro/Strapi Monorepo Deploy"
+
+on:
+  workflow_call:
+    inputs:
+      build:
+        required: false
+        type: boolean
+        default: false
+      copy:
+        description: "Should files be copied from another remote directory - such as from staging to production? "
+        type: boolean
+        required: false
+        default: false
+      host:
+        description: "Remote host"
+        type: string
+        required: true
+      username:
+        description: "Username to login"
+        type: string
+        required: true
+      port:
+        description: "SSH port"
+        type: string
+        required: false
+        default: "22"
+      password:
+        description: "SSH password"
+        type: string
+        required: false
+      key:
+        description: "SSH key"
+        type: string
+        required: false
+      remote-source-path:
+        description: 'Remote path files will be copied *from* - required if "copy" input is true'
+        type: string
+      remote-target-path:
+        description: "Remote path where files will be copied *to*"
+        type: string
+        required: true
+      pm2-id:
+        description: "PM2 ID or Name of the process"
+        type: string
+        required: true
+
+jobs:
+  deploy-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Copy to remote target
+        uses: burnett01/rsync-deployments@7.0.1
+        if: ${{ inputs.copy == '' || inputs.copy == 'false' }}
+        with:
+          switches: -avzr --update --progress --omit-dir-times --no-perms --chmod=ugo=rwX
+          remote_path: ${{ inputs.remote-target-path }}
+          remote_host: ${{ inputs.host }}
+          remote_user: ${{ inputs.username }}
+          remote_key: ${{ inputs.key }}
+
+      - name: Install project
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          HOST: ${{ inputs.host }}
+          USERNAME: ${{ inputs.username }}
+          PORT: ${{ inputs.port }}
+          PASSWORD: ${{ inputs.password }}
+          KEY: ${{ inputs.key }}
+          script: cd ${{ inputs.remote-target-path }} && pnpm ci
+
+      - name: Build the backend
+        if: ${{ inputs.build == true }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          HOST: ${{ inputs.host }}
+          USERNAME: ${{ inputs.username }}
+          PORT: ${{ inputs.port }}
+          PASSWORD: ${{ inputs.password }}
+          KEY: ${{ inputs.key }}
+          script: cd ${{ inputs.remote-target-path }} && npm run build
+
+      - name: Reload the backend service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          HOST: ${{ inputs.host }}
+          USERNAME: ${{ inputs.username }}
+          PORT: ${{ inputs.port }}
+          PASSWORD: ${{ inputs.password }}
+          KEY: ${{ inputs.key }}
+          script: cd ${{ inputs.remote-target-path }} && pm2 reload ${{ inputs.pm2-id }}
+
+      - name: Reset number of restarts
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          HOST: ${{ inputs.host }}
+          USERNAME: ${{ inputs.username }}
+          PORT: ${{ inputs.port }}
+          PASSWORD: ${{ inputs.password }}
+          KEY: ${{ inputs.key }}
+          script: pm2 reset ${{ inputs.pm2-id }}
+
+      - name: Build the backend
+        if: ${{ inputs.build == true }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          HOST: ${{ inputs.host }}
+          USERNAME: ${{ inputs.username }}
+          PORT: ${{ inputs.port }}
+          PASSWORD: ${{ inputs.password }}
+          KEY: ${{ inputs.key }}
+          script: cd ${{ inputs.remote-target-path }} && npm run build
