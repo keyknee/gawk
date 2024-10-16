@@ -70,7 +70,7 @@ jobs:
           PORT: ${{ inputs.port }}
           PASSWORD: ${{ inputs.password }}
           KEY: ${{ inputs.key }}
-          script: cd ${{ inputs.remote-target-path }} && pnpm ci
+          script: cd ${{ inputs.remote-target-path }} && pnpm run setup
 
       - name: Build the backend
         if: ${{ inputs.build == true }}
@@ -81,7 +81,7 @@ jobs:
           PORT: ${{ inputs.port }}
           PASSWORD: ${{ inputs.password }}
           KEY: ${{ inputs.key }}
-          script: cd ${{ inputs.remote-target-path }} && npm run build
+          script: cd ${{ inputs.remote-target-path }} && pnpm build
 
       - name: Reload the backend service
         uses: appleboy/ssh-action@v1.0.3
@@ -103,7 +103,7 @@ jobs:
           KEY: ${{ inputs.key }}
           script: pm2 reset ${{ inputs.pm2-id }}
 
-      - name: Build the backend
+      - name: Build the frontend
         if: ${{ inputs.build == true }}
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -112,4 +112,4 @@ jobs:
           PORT: ${{ inputs.port }}
           PASSWORD: ${{ inputs.password }}
           KEY: ${{ inputs.key }}
-          script: cd ${{ inputs.remote-target-path }} && npm run build
+          script: cd ${{ inputs.remote-target-path }} && pnpm build:astro-frontend
