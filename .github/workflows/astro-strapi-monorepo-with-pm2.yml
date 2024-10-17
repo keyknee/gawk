@@ -56,7 +56,7 @@ jobs:
         uses: burnett01/rsync-deployments@7.0.1
         if: ${{ inputs.copy == '' || inputs.copy == 'false' }}
         with:
-          switches: -avzr --update --progress --omit-dir-times --no-perms --chmod=ugo=rwX
+          switches: -avzr --update --progress --omit-dir-times --no-perms
           remote_path: ${{ inputs.remote-target-path }}
           remote_host: ${{ inputs.host }}
           remote_user: ${{ inputs.username }}
