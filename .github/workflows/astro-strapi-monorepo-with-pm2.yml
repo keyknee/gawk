@@ -12,27 +12,11 @@ on:
         type: boolean
         required: false
         default: false
-      host:
-        description: "Remote host"
-        type: string
-        required: true
-      username:
-        description: "Username to login"
-        type: string
-        required: true
       port:
         description: "SSH port"
         type: string
         required: false
         default: "22"
-      password:
-        description: "SSH password"
-        type: string
-        required: false
-      key:
-        description: "SSH key"
-        type: string
-        required: false
       remote-source-path:
         description: 'Remote path files will be copied *from* - required if "copy" input is true'
         type: string
@@ -44,7 +28,19 @@ on:
         description: "PM2 ID or Name of the process"
         type: string
         required: true
-
+    secrets:
+      host:
+        description: "Remote host"
+        required: true
+      username:
+        description: "Username to login"
+        required: true
+      password:
+        description: "SSH password"
+        required: false
+      key:
+        description: "SSH key"
+        required: false
 jobs:
   deploy-files:
     runs-on: ubuntu-latest
@@ -58,58 +54,58 @@ jobs:
         with:
           switches: -avzr --update --progress --omit-dir-times --no-perms
           remote_path: ${{ inputs.remote-target-path }}
-          remote_host: ${{ inputs.host }}
-          remote_user: ${{ inputs.username }}
-          remote_key: ${{ inputs.key }}
+          remote_host: ${{ secrets.host }}
+          remote_user: ${{ secrets.username }}
+          remote_key: ${{ secrets.key }}
 
       - name: Install project
         uses: appleboy/ssh-action@v1.0.3
         with:
-          HOST: ${{ inputs.host }}
-          USERNAME: ${{ inputs.username }}
+          HOST: ${{ secrets.host }}
+          USERNAME: ${{ secrets.username }}
           PORT: ${{ inputs.port }}
-          PASSWORD: ${{ inputs.password }}
-          KEY: ${{ inputs.key }}
+          PASSWORD: ${{ secrets.password }}
+          KEY: ${{ secrets.key }}
           script: cd ${{ inputs.remote-target-path }} && pnpm run setup
 
       - name: Build the backend
         if: ${{ inputs.build == true }}
         uses: appleboy/ssh-action@v1.0.3
         with:
-          HOST: ${{ inputs.host }}
-          USERNAME: ${{ inputs.username }}
+          HOST: ${{ secrets.host }}
+          USERNAME: ${{ secrets.username }}
           PORT: ${{ inputs.port }}
-          PASSWORD: ${{ inputs.password }}
-          KEY: ${{ inputs.key }}
+          PASSWORD: ${{ secrets.password }}
+          KEY: ${{ secrets.key }}
           script: cd ${{ inputs.remote-target-path }} && pnpm build
 
       - name: Reload the backend service
         uses: appleboy/ssh-action@v1.0.3
         with:
-          HOST: ${{ inputs.host }}
-          USERNAME: ${{ inputs.username }}
+          HOST: ${{ secrets.host }}
+          USERNAME: ${{ secrets.username }}
           PORT: ${{ inputs.port }}
-          PASSWORD: ${{ inputs.password }}
-          KEY: ${{ inputs.key }}
+          PASSWORD: ${{ secrets.password }}
+          KEY: ${{ secrets.key }}
           script: cd ${{ inputs.remote-target-path }} && pm2 reload ${{ inputs.pm2-id }}
 
       - name: Reset number of restarts
         uses: appleboy/ssh-action@v1.0.3
         with:
-          HOST: ${{ inputs.host }}
-          USERNAME: ${{ inputs.username }}
+          HOST: ${{ secrets.host }}
+          USERNAME: ${{ secrets.username }}
           PORT: ${{ inputs.port }}
-          PASSWORD: ${{ inputs.password }}
-          KEY: ${{ inputs.key }}
+          PASSWORD: ${{ secrets.password }}
+          KEY: ${{ secrets.key }}
           script: pm2 reset ${{ inputs.pm2-id }}
 
       - name: Build the frontend
         if: ${{ inputs.build == true }}
         uses: appleboy/ssh-action@v1.0.3
         with:
-          HOST: ${{ inputs.host }}
-          USERNAME: ${{ inputs.username }}
+          HOST: ${{ secrets.host }}
+          USERNAME: ${{ secrets.username }}
           PORT: ${{ inputs.port }}
-          PASSWORD: ${{ inputs.password }}
-          KEY: ${{ inputs.key }}
+          PASSWORD: ${{ secrets.password }}
+          KEY: ${{ secrets.key }}
           script: cd ${{ inputs.remote-target-path }} && pnpm build:astro-frontend
